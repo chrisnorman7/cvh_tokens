@@ -97,7 +97,6 @@ class CVHToken:
             raise RuntimeError(
                 f"Braille height ({box.ymax}) does not fit within token ({edge})."
             )
-        print((-box.xlen / 2, -box.ylen / 2, self.thickness - box.zmin))
         return braille.translate(
             (-box.xlen / 2, -box.ylen / 2, self.thickness - box.zmin)
         )
@@ -106,7 +105,32 @@ class CVHToken:
         """Get the entire shape."""
         return self.token.cut(self.text).union(self.braille)
 
+    def nest(self, size: float = 256, spacing: float = 1) -> list[cq.Shape]:
+        """Nest as many tokens as possible.
+
+        Arguments:
+            size: The size of the area to nest tokens within.
+            spacing: The spacing between tokens.
+        """
+        objects: list[cq.Shape] = []
+        token = self.get_shape()
+        shape = cast(cq.Shape, token.val())
+        box = shape.BoundingBox()
+        shape = shape.translate((-box.xmin, -box.ymin, -box.zmin))
+        width = self.radius * 2
+        full_width = width + spacing
+        multiplier = int(size // full_width)
+        for x in range(multiplier):
+            for y in range(multiplier):
+                objects.append(shape.translate((x * full_width, y * full_width, 0)))
+        return objects
+
 
 if __name__ == "__main__":
     token = CVHToken()
-    token.get_shape().export("token.stl")
+    objects = token.nest()
+    nest = cq.Compound.makeCompound(objects)
+    box = nest.BoundingBox()
+    print(box.xlen, box.ylen)
+    token.get_shape().export("token.step")
+    nest.export("nest.step")
