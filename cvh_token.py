@@ -10,13 +10,13 @@ from braille import BrailleLine
 class CVHToken:
     """A circular token."""
 
-    radius: float = 12
+    radius: float = 18
     """The radius of the circle."""
 
-    thickness: float = 5
+    thickness: float = 3.5
     """The thickness of the token."""
 
-    fillet: float = 2.4
+    fillet: float = 1.5
     """How much to fillet the edges of the token."""
 
     braille_string: str = "⠉⠧⠓"
@@ -25,7 +25,7 @@ class CVHToken:
     text_string: str = "CVH"
     """The text to engrave into the bottom surface."""
 
-    font_size: float = 19
+    font_size: float = 16
     """The font size to use."""
 
     text_distance: float = 1.0
@@ -39,11 +39,19 @@ class CVHToken:
             txt=string, distance=self.text_distance, fontsize=self.font_size
         )
         shape = cast(cq.Shape, text.val())
-        edge = (self.radius - self.fillet) * 2
+        edge = self.radius - self.fillet
         box = shape.BoundingBox()
+        if box.xmin < -edge:
+            raise RuntimeError(
+                f"Left edge of text ({box.xmin}) does not fit within token ({-edge})."
+            )
         if box.xmax > edge:
             raise RuntimeError(
                 f"Right edge of text ({box.xmax}) does not fit within token ({edge})."
+            )
+        if box.ymin < -edge:
+            raise RuntimeError(
+                f"Bottom edge of text ({box.ymin}) does not fit within token ({-edge})."
             )
         if box.ymax > edge:
             raise RuntimeError(
@@ -72,16 +80,27 @@ class CVHToken:
                 f"Braille string {self.braille_string} produced no braille."
             )
         box = braille.BoundingBox()
-        edge = (self.radius - self.fillet) * 2
-        if box.xlen > edge:
+        edge = self.radius - self.fillet
+        if box.xmin < -edge:
             raise RuntimeError(
-                f"Braille width ({box.xlen}) does not fit within token ({edge})."
+                f"Braille left edge ({box.xmin}) does not fit within token ({-edge})."
             )
-        if box.ylen > edge:
+        if box.xmax > edge:
             raise RuntimeError(
-                f"Braille height ({box.ylen}) does not fit within token ({edge})."
+                f"Braille width ({box.xmax}) does not fit within token ({edge})."
             )
-        return braille.translate((-box.xlen / 2, -box.ylen / 2, self.radius * 2))
+        if box.ymin < -edge:
+            raise RuntimeError(
+                f"Braille bottom edge ({box.ymin}) does not fit within token ({-edge})."
+            )
+        if box.ymax > edge:
+            raise RuntimeError(
+                f"Braille height ({box.ymax}) does not fit within token ({edge})."
+            )
+        print((-box.xlen / 2, -box.ylen / 2, self.thickness - box.zmin))
+        return braille.translate(
+            (-box.xlen / 2, -box.ylen / 2, self.thickness - box.zmin)
+        )
 
     def get_shape(self) -> cq.Workplane:
         """Get the entire shape."""
