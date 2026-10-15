@@ -25,7 +25,7 @@ class CVHToken:
     text_string: str = "CVH"
     """The text to engrave into the bottom surface."""
 
-    font_size: float = 16
+    font_size: float = 14
     """The font size to use."""
 
     text_distance: float = 1.0
